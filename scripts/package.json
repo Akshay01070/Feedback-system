@@ -1,0 +1,18 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "integration_test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@semaphore-protocol/group": "^4.14.1",
+    "@semaphore-protocol/identity": "^4.14.1",
+    "axios": "^1.13.2"
+  }
+}
