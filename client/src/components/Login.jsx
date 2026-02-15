@@ -10,10 +10,11 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('role', res.data.role);
             localStorage.setItem('userId', res.data.userId); // Store userId for everything
+            localStorage.setItem('name', res.data.name);
 
             if (res.data.role === 'admin') navigate('/admin');
             else if (res.data.role === 'teacher') navigate('/teacher');

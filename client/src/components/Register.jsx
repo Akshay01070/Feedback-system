@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Register = () => {
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
@@ -11,7 +12,7 @@ const Register = () => {
     const handleRegister = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/auth/register', { email, password, role });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, { name, email, password, role });
             alert('Registration Successful! Please Login.');
             navigate('/');
         } catch (err) {
@@ -24,6 +25,32 @@ const Register = () => {
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl animate-fade-in-up">
                 <h2 className="text-3xl font-bold text-center text-gray-900">Create Account</h2>
                 <form onSubmit={handleRegister} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        <select
+                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                        >
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    {role === 'teacher' && (
+                        <div className="animate-fade-in-up">
+                            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="e.g. Dr. Joydeep"
+                                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email</label>
                         <input
@@ -43,18 +70,6 @@ const Register = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                        <select
-                            className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                        >
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                        </select>
                     </div>
                     <button
                         type="submit"

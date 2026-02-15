@@ -17,11 +17,13 @@ const isAdmin = async (req, res, next) => {
 // Create a new feedback form
 router.post('/create', isAdmin, async (req, res) => {
     try {
-        const { title, description, questions } = req.body;
+        const { title, description, questions, assignedFaculty, hasLabComponent } = req.body;
         const form = new FeedbackForm({
             title,
             description,
-            questions
+            questions,
+            assignedFaculty,
+            hasLabComponent: hasLabComponent || false
         });
         await form.save();
         res.json(form);
@@ -31,11 +33,24 @@ router.post('/create', isAdmin, async (req, res) => {
     }
 });
 
-// Get all active forms (for students)
+// Get all active forms (for students) with populated faculty info
 router.get('/all', async (req, res) => {
     try {
-        const forms = await FeedbackForm.find({ active: true }).sort({ createdAt: -1 });
+        const forms = await FeedbackForm.find({ active: true })
+            .populate('assignedFaculty', 'name email')
+            .sort({ createdAt: -1 });
         res.json(forms);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Get list of all faculty members
+router.get('/faculty-list', async (req, res) => {
+    try {
+        const faculty = await User.find({ role: 'teacher' }).select('name email');
+        res.json(faculty);
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -80,7 +95,7 @@ router.post('/submit', async (req, res) => {
 router.get('/responses', async (req, res) => {
     try {
         const responses = await FeedbackResponse.find()
-            .populate('formId', 'title')
+            .populate({ path: 'formId', select: 'title assignedFaculty' })
             .sort({ submittedAt: -1 });
         res.json(responses);
     } catch (err) {

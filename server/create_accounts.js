@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const UserSchema = new mongoose.Schema({
+    name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ['student', 'teacher', 'admin'], default: 'student' },
@@ -14,9 +15,9 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 
 const accounts = [
-    { email: 'student@test.com', password: 'Test@123', role: 'student' },
-    { email: 'teacher@test.com', password: 'Test@123', role: 'teacher' },
-    { email: 'admin@test.com', password: 'Test@123', role: 'admin' }
+    { name: 'Student One', email: 'student@test.com', password: 'Test@123', role: 'student' },
+    { name: 'Prof. Joydeep', email: 'teacher@test.com', password: 'Test@123', role: 'teacher' },
+    { name: 'Admin User', email: 'admin@test.com', password: 'Test@123', role: 'admin' }
 ];
 
 async function createAccounts() {
@@ -26,26 +27,27 @@ async function createAccounts() {
 
         for (const account of accounts) {
             try {
-                // Check if user exists
+                // Delete existing user first (to ensure clean data with name field)
                 const existing = await User.findOne({ email: account.email });
                 if (existing) {
-                    console.log(`⚠ ${account.role.toUpperCase()} account already exists: ${account.email}`);
-                    continue;
+                    await User.deleteOne({ email: account.email });
+                    console.log(`🗑 Deleted old ${account.role.toUpperCase()} account: ${account.email}`);
                 }
 
                 // Hash password
                 const salt = await bcrypt.genSalt(10);
                 const passwordHash = await bcrypt.hash(account.password, salt);
 
-                // Create user
+                // Create user with name
                 const user = new User({
+                    name: account.name,
                     email: account.email,
                     passwordHash,
                     role: account.role
                 });
 
                 await user.save();
-                console.log(`✓ Created ${account.role.toUpperCase()} account: ${account.email}`);
+                console.log(`✓ Created ${account.role.toUpperCase()} account: ${account.email} (name: ${account.name})`);
             } catch (err) {
                 console.log(`✗ Error creating ${account.role} account: ${err.message}`);
             }
