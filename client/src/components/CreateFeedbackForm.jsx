@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const CreateFeedbackForm = () => {
@@ -32,39 +33,39 @@ const CreateFeedbackForm = () => {
     const loadStandardTemplate = () => {
 
         const orgQuestions = [
-            { text: 'Objectives and plan of the subject were specified', type: 'score', section: 'Organization' },
-            { text: 'Coverage and depth of the subject was', type: 'score', section: 'Organization' },
-            { text: 'Pace of teaching / learning and communication skill were', type: 'score', section: 'Organization' },
-            { text: 'The topics provided new knowledge was', type: 'score', section: 'Organization' },
-            { text: 'Prescribed reading material was available', type: 'score', section: 'Organization' },
-            { text: 'In terms of organization, clarity and presentation of the fundamental concepts, the lectures were', type: 'score', section: 'Organization' },
-            { text: 'Instructor\'s oral presentation in terms of audibility and articulation was', type: 'score', section: 'Organization' },
-            { text: 'Instructor\'s whiteboard (or ppt) presentation in terms of organization and legibility was', type: 'score', section: 'Organization' },
-            { text: 'Encouragements given by the instructor to think and reason, logically and objectively was', type: 'score', section: 'Organization' },
-            { text: 'Instructor\'s response to the questions asked in the class was', type: 'score', section: 'Organization' },
-            { text: 'The availability and approachability of instructors outside class was', type: 'score', section: 'Organization' },
-            { text: 'Instructor\'s attitude towards teaching of this course was', type: 'score', section: 'Organization' },
-            { text: 'The overall quality of the teaching was', type: 'score', section: 'Organization' },
+            { text: 'Objectives and plan of the subject were specified', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Coverage and depth of the subject was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Pace of teaching / learning and communication skill were', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'The topics provided new knowledge was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Prescribed reading material was available', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'In terms of organization, clarity and presentation of the fundamental concepts, the lectures were', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Instructor\'s oral presentation in terms of audibility and articulation was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Instructor\'s whiteboard (or ppt) presentation in terms of organization and legibility was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Encouragements given by the instructor to think and reason, logically and objectively was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Instructor\'s response to the questions asked in the class was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'The availability and approachability of instructors outside class was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'Instructor\'s attitude towards teaching of this course was', type: 'score', section: 'Subject Feedback', predefined: true },
+            { text: 'The overall quality of the teaching was', type: 'score', section: 'Subject Feedback', predefined: true },
         ];
 
         const labQuestions = [
-            { text: 'The experiments provided new insights', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Handouts / lab manuals were available', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Methodical / systematic work was emphasized', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Your presentation before going to the laboratory was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Instructor\'s feedback on your report was prompt', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'During the lab session, your interaction with the instructor was useful', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Encouragement given by the instructor to think and be creative was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
-            { text: 'Overall, the laboratory experience was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', required: false },
+            { text: 'The experiments provided new insights', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Handouts / lab manuals were available', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Methodical / systematic work was emphasized', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Your presentation before going to the laboratory was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Instructor\'s feedback on your report was prompt', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'During the lab session, your interaction with the instructor was useful', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Encouragement given by the instructor to think and be creative was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
+            { text: 'Overall, the laboratory experience was', type: 'score', section: 'Presentation and Interaction (Lab Component - Optional)', predefined: true },
         ];
 
         const generalQuestions = [
-            { text: 'Would you rate this subject as one of the Five best subjects you had so far?', type: 'choice', options: ['Yes', 'No'], section: 'General Comments' },
-            { text: 'The work load in this subject in comparison to the subjects this semester was', type: 'choice', options: ['Very little', 'Just right', 'Too heavy'], section: 'General Comments' },
-            { text: 'Were the lectures held regularly and on time?', type: 'choice', options: ['Yes', 'No'], section: 'General Comments' },
-            { text: 'What did you like / dislike about this subject?', type: 'text', section: 'General Comments' },
-            { text: 'In additional to the class hours, how many hours per week did you put in?', type: 'text', section: 'General Comments' },
-            { text: 'Please give additional comments to improve the subject further', type: 'text', section: 'General Comments' }
+            { text: 'Would you rate this subject as one of the Five best subjects you had so far?', type: 'choice', options: ['Yes', 'No'], section: 'General Comments', predefined: true },
+            { text: 'The work load in this subject in comparison to the subjects this semester was', type: 'choice', options: ['Very little', 'Just right', 'Too heavy'], section: 'General Comments', predefined: true },
+            { text: 'Were the lectures held regularly and on time?', type: 'choice', options: ['Yes', 'No'], section: 'General Comments', predefined: true },
+            { text: 'What did you like / dislike about this subject?', type: 'text', section: 'General Comments', predefined: true },
+            { text: 'In additional to the class hours, how many hours per week did you put in?', type: 'text', section: 'General Comments', predefined: true },
+            { text: 'Please give additional comments to improve the subject further', type: 'text', section: 'General Comments', predefined: true }
         ];
 
         // Always include all sections - lab is optional for students
@@ -93,11 +94,11 @@ const CreateFeedbackForm = () => {
                 questions,
                 assignedFaculty
             });
-            alert('Feedback Form Created Successfully!');
+            toast.success('Feedback Form Created Successfully!');
             navigate('/admin');
         } catch (err) {
             console.error(err);
-            alert('Failed to create form');
+            toast.error('Failed to create form');
         }
     };
 
@@ -155,7 +156,9 @@ const CreateFeedbackForm = () => {
                                     <p className="font-medium text-gray-800">{q.text}</p>
                                     <span className="text-xs text-gray-500">Type: {q.type}</span>
                                 </div>
-                                <button type="button" onClick={() => removeQuestion(i)} className="text-red-500 hover:text-red-700 text-sm">✕</button>
+                                {!q.predefined && (
+                                    <button type="button" onClick={() => removeQuestion(i)} className="text-red-500 hover:text-red-700 text-sm">✕</button>
+                                )}
                             </div>
                         ))}
                     </div>
