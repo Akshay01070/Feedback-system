@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "node index.js",
+    "dev": "nodemon index.js",
     "start-db": "call \"C:\\Program Files\\MongoDB\\Server\\7.0\\bin\\mongod.exe\" --dbpath \"../data\""
   },
   "keywords": [],
@@ -22,5 +22,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

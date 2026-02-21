@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import RoleSelect from './components/RoleSelect';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
@@ -11,10 +13,20 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
+        <Toaster position="top-right" toastOptions={{ duration: 3000, style: { borderRadius: '10px', background: '#333', color: '#fff' } }} />
         <Routes>
-          <Route path="/" element={<Login />} />
+          {/* Role selection landing page */}
+          <Route path="/" element={<RoleSelect />} />
+
+          {/* Auth — role comes from URL param */}
+          <Route path="/login/:role" element={<Login />} />
+          <Route path="/register/:role" element={<Register />} />
+
+          {/* Legacy redirects (keep old /login and /register working) */}
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          {/* Protected dashboards */}
           <Route path="/admin" element={
             <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
           } />

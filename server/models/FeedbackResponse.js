@@ -2,12 +2,14 @@ const mongoose = require('mongoose');
 
 const FeedbackResponseSchema = new mongoose.Schema({
     formId: { type: mongoose.Schema.Types.ObjectId, ref: 'FeedbackForm', required: true },
-    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Optional if anonymous, but good for tracking
+    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     answers: [{
-        questionId: { type: mongoose.Schema.Types.ObjectId }, // If we give questions IDs, otherwise rely on index/order or text
+        questionId: { type: mongoose.Schema.Types.ObjectId },
         questionText: { type: String },
-        answer: { type: mongoose.Schema.Types.Mixed } // Number or String
+        answer: { type: mongoose.Schema.Types.Mixed },
+        section: { type: String }
     }],
+    approvedForTeacher: { type: Boolean, default: false },
     submittedAt: { type: Date, default: Date.now }
 });
 
