@@ -12,13 +12,16 @@ const isAdmin = async (req, res, next) => {
 // Create a new feedback form
 router.post('/create', isAdmin, async (req, res) => {
     try {
-        const { title, description, questions, assignedFaculty, hasLabComponent } = req.body;
+        const { title, description, questions, assignedFaculty, hasLabComponent, startDate, endDate, allowedEmails } = req.body;
         const form = new FeedbackForm({
             title,
             description,
             questions,
             assignedFaculty,
-            hasLabComponent: hasLabComponent || false
+            hasLabComponent: hasLabComponent || false,
+            startDate,
+            endDate,
+            allowedEmails: allowedEmails || []
         });
         await form.save();
         res.json(form);
@@ -29,12 +32,53 @@ router.post('/create', isAdmin, async (req, res) => {
 });
 
 // Get all active forms (for students) with populated faculty info
+// Now supports filtering by student email if studentId is provided in query
 router.get('/all', async (req, res) => {
     try {
-        const forms = await FeedbackForm.find({ active: true })
+        const { studentId } = req.query;
+        let query = { active: true };
+
+        // If a student is requesting forms, check if they are explicitly allowed
+        if (studentId) {
+            const student = await User.findById(studentId);
+            if (student) {
+                const studentEmail = student.email;
+                query = {
+                    ...query,
+                    $or: [
+                        { allowedEmails: { $exists: false } }, // Field doesn't exist (old forms)
+                        { allowedEmails: { $size: 0 } },       // Field is empty array (public forms)
+                        { allowedEmails: studentEmail }       // Student is in the allowlist
+                    ]
+                };
+            }
+        }
+
+        const forms = await FeedbackForm.find(query)
             .populate('assignedFaculty', 'name email')
             .sort({ createdAt: -1 });
         res.json(forms);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Delete a feedback form and its associated responses
+router.delete('/:id', isAdmin, async (req, res) => {
+    try {
+        const formId = req.params.id;
+        
+        // Remove the form
+        const deletedForm = await FeedbackForm.findByIdAndDelete(formId);
+        if (!deletedForm) {
+            return res.status(404).json({ msg: 'Form not found' });
+        }
+
+        // Remove all responses associated with this form
+        await FeedbackResponse.deleteMany({ formId });
+
+        res.json({ msg: 'Form and associated responses deleted successfully' });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -46,6 +90,27 @@ router.get('/faculty-list', async (req, res) => {
     try {
         const faculty = await User.find({ role: 'teacher' }).select('name email');
         res.json(faculty);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Close a feedback form instantly
+router.patch('/close/:id', isAdmin, async (req, res) => {
+    try {
+        const formId = req.params.id;
+        const updatedForm = await FeedbackForm.findByIdAndUpdate(
+            formId,
+            { endDate: new Date() },
+            { new: true }
+        );
+
+        if (!updatedForm) {
+            return res.status(404).json({ msg: 'Form not found' });
+        }
+
+        res.json(updatedForm);
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');

@@ -32,7 +32,12 @@ const StudentDashboard = () => {
 
     const fetchForms = async () => {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/feedback/all`);
+            const userId = localStorage.getItem('userId');
+            const url = userId 
+                ? `${import.meta.env.VITE_API_URL}/api/feedback/all?studentId=${userId}`
+                : `${import.meta.env.VITE_API_URL}/api/feedback/all`;
+            
+            const res = await axios.get(url);
             setForms(res.data);
         } catch (err) {
             console.error(err);
@@ -135,9 +140,16 @@ const StudentDashboard = () => {
     return (
         <>
             <Navbar />
-            <div className="min-h-screen p-8 bg-gray-50">
-                <div className="max-w-4xl mx-auto space-y-8">
-                    <h1 className="text-4xl font-bold text-gray-800">Student Dashboard</h1>
+            
+            {/* Anonymous Confidence Banner */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-3 shadow-sm sticky top-0 z-10 flex items-center justify-center gap-2 text-sm font-medium">
+                <span className="text-lg">🔒</span>
+                Your feedback is 100% anonymous and encrypted. Teachers cannot see who submitted this.
+            </div>
+
+            <div className="min-h-screen p-8 bg-gray-100">
+                <div className="max-w-4xl mx-auto">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-8">Student Dashboard</h1>
 
                     {/* Identity Section */}
                     <div className="p-6 bg-white rounded-xl shadow-md">
@@ -161,38 +173,55 @@ const StudentDashboard = () => {
                     {!selectedForm ? (
                         <div className="p-6 bg-white rounded-xl shadow-md">
                             <h2 className="text-2xl font-semibold mb-4">Available Feedback Forms</h2>
-                            {forms.length === 0 ? (
+                            {forms.filter(form => !form.endDate || new Date() <= new Date(form.endDate)).length === 0 ? (
                                 <p className="text-gray-500">No active forms available.</p>
                             ) : (
                                 <div className="space-y-4">
-                                    {forms.map(form => {
-                                        const isSubmitted = submittedFormIds.includes(form._id);
-                                        return (
-                                            <div key={form._id} className={`border p-4 rounded-lg flex justify-between items-center ${isSubmitted ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
-                                                <div>
-                                                    <h3 className="font-bold text-lg">{form.title}</h3>
-                                                    <p className="text-gray-600 text-sm">{form.description}</p>
-                                                    {form.assignedFaculty && (
-                                                        <p className="text-indigo-600 text-sm font-medium mt-1">
-                                                            Prof: {form.assignedFaculty.name}
-                                                        </p>
+                                    {forms
+                                        .filter(form => !form.endDate || new Date() <= new Date(form.endDate))
+                                        .map(form => {
+                                            const isSubmitted = submittedFormIds.includes(form._id);
+                                            const hasStarted = !form.startDate || new Date() >= new Date(form.startDate);
+
+                                            const handleStartClick = () => {
+                                                if (!hasStarted) {
+                                                    const formattedDate = new Date(form.startDate).toLocaleString();
+                                                    toast.error(`Feedback for this subject opens on ${formattedDate}`);
+                                                    return;
+                                                }
+                                                setSelectedForm(form);
+                                            };
+                                            return (
+                                                <div key={form._id} className={`border p-4 rounded-lg flex justify-between items-center ${isSubmitted ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'}`}>
+                                                    <div>
+                                                        <h3 className="font-bold text-lg">{form.title}</h3>
+                                                        <p className="text-gray-600 text-sm">{form.description}</p>
+                                                        {form.assignedFaculty && (
+                                                            <p className="text-indigo-600 text-sm font-medium mt-1">
+                                                                Prof: {form.assignedFaculty.name}
+                                                            </p>
+                                                        )}
+                                                        {(form.startDate || form.endDate) && (
+                                                            <div className="mt-2 text-xs font-medium text-gray-500 bg-gray-100 inline-block px-2 py-1 rounded">
+                                                                ⏱️ Window: {form.startDate ? new Date(form.startDate).toLocaleDateString() : 'Now'} - {form.endDate ? new Date(form.endDate).toLocaleDateString() : 'Anytime'}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {isSubmitted ? (
+                                                        <span className="px-4 py-2 bg-green-100 text-green-700 rounded-md font-medium">
+                                                            ✓ Completed
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={handleStartClick}
+                                                            className={`px-4 py-2 text-white rounded-md transition ${hasStarted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed hover:bg-gray-500'}`}
+                                                        >
+                                                            {hasStarted ? 'Start' : 'Upcoming'}
+                                                        </button>
                                                     )}
                                                 </div>
-                                                {isSubmitted ? (
-                                                    <span className="px-4 py-2 bg-green-100 text-green-700 rounded-md font-medium">
-                                                        ✓ Completed
-                                                    </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => setSelectedForm(form)}
-                                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                                    >
-                                                        Start
-                                                    </button>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             )}
                         </div>

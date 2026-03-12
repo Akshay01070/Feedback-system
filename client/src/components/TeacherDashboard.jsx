@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
+import AnalyticsPanel from './AnalyticsPanel';
 
 const TeacherDashboard = () => {
     const [responses, setResponses] = useState([]);
@@ -77,6 +78,10 @@ const TeacherDashboard = () => {
                                     <p className="text-gray-500 text-sm mb-6">
                                         {groupedResponses[expandedSubject]?.responses.length} response(s)
                                     </p>
+
+                                    {/* Analytics Panel */}
+                                    <AnalyticsPanel responses={groupedResponses[expandedSubject]?.responses || []} />
+
                                     <div className="space-y-4">
                                         {groupedResponses[expandedSubject]?.responses.map((response, idx) => (
                                             <div key={response._id} className="border-2 border-indigo-200 rounded-xl bg-white shadow-md overflow-hidden">

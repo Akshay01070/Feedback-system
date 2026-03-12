@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import Navbar from './Navbar';
+import AnalyticsPanel from './AnalyticsPanel';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({ pendingCount: 0, onChainCount: 0 });
@@ -59,6 +60,37 @@ const AdminDashboard = () => {
         }
     };
 
+    // Delete a form
+    const deleteForm = async (formId) => {
+        if (!window.confirm("Are you sure you want to delete this form? This will permanently delete the form and ALL its submitted feedback responses.")) return;
+        
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/feedback/${formId}`);
+            setForms(prev => prev.filter(f => f._id !== formId));
+            setResponses(prev => prev.filter(r => r.formId?._id !== formId));
+            if (expandedSubject === formId) setExpandedSubject(null);
+            toast.success('Form and all its responses deleted successfully!');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to delete form');
+        }
+    };
+
+    // Close a form instantly
+    const closeForm = async (formId) => {
+        if (!window.confirm("Are you sure you want to close this form now? Students will no longer be able to submit feedback for it.")) return;
+        
+        try {
+            const res = await axios.patch(`${import.meta.env.VITE_API_URL}/api/feedback/close/${formId}`);
+            // Update the local form state with the new endDate returned from server
+            setForms(prev => prev.map(f => f._id === formId ? { ...f, endDate: res.data.endDate } : f));
+            toast.success('Form closed successfully!');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to close form');
+        }
+    };
+
     // Approve or revoke all responses for a form
     const approveAll = async (formId, approve) => {
         try {
@@ -81,6 +113,20 @@ const AdminDashboard = () => {
         acc[formId].responses.push(r);
         return acc;
     }, {});
+
+    // Helper to determine form status
+    const getFormStatus = (form) => {
+        if (!form.active) return { label: 'Inactive', color: 'bg-gray-100 text-gray-500', raw: 'inactive' };
+        
+        const now = new Date();
+        if (form.endDate && now > new Date(form.endDate)) {
+            return { label: '🔴 Expired', color: 'bg-red-100 text-red-700', raw: 'expired' };
+        }
+        if (form.startDate && now < new Date(form.startDate)) {
+            return { label: '🟡 Opening Soon', color: 'bg-yellow-100 text-yellow-800', raw: 'upcoming' };
+        }
+        return { label: '🟢 Active', color: 'bg-green-100 text-green-700', raw: 'active' };
+    };
 
     return (
         <>
@@ -147,25 +193,43 @@ const AdminDashboard = () => {
                                     <p className="text-gray-500 text-center py-8">No forms created yet.</p>
                                 ) : (
                                     <div className="space-y-4">
-                                        {forms.map(form => (
-                                            <div key={form._id} className="border p-4 rounded-lg hover:bg-gray-50">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
+                                        {forms.map(form => {
+                                            const status = getFormStatus(form);
+                                            return (
+                                            <div key={form._id} className="border p-4 rounded-lg hover:bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-1">
                                                         <h3 className="font-bold text-lg">{form.title}</h3>
-                                                        <p className="text-gray-600 text-sm">{form.description}</p>
-                                                        {form.assignedFaculty && (
-                                                            <p className="text-indigo-600 text-sm font-medium mt-1">Professor: {form.assignedFaculty.name}</p>
-                                                        )}
-                                                        <p className="text-xs text-gray-400 mt-2">
-                                                            {form.questions?.length || 0} questions • Created {new Date(form.createdAt).toLocaleDateString()}
-                                                        </p>
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${status.color}`}>
+                                                            {status.label}
+                                                        </span>
                                                     </div>
-                                                    <span className={`px-2 py-1 rounded text-xs ${form.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                        {form.active ? 'Active' : 'Inactive'}
-                                                    </span>
+                                                    <p className="text-gray-600 text-sm">{form.description}</p>
+                                                    {form.assignedFaculty && (
+                                                        <p className="text-indigo-600 text-sm font-medium mt-1">Professor: {form.assignedFaculty.name}</p>
+                                                    )}
+                                                    <p className="text-xs text-gray-400 mt-2">
+                                                        {form.questions?.length || 0} questions • Created {new Date(form.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {(status.raw === 'active' || status.raw === 'upcoming') && (
+                                                        <button 
+                                                            onClick={() => closeForm(form._id)}
+                                                            className="text-xs font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded transition border border-amber-200"
+                                                        >
+                                                            🛑 Close Now
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => deleteForm(form._id)}
+                                                        className="text-xs font-medium text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded transition border border-red-200"
+                                                    >
+                                                        🗑 Delete
+                                                    </button>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 )
                             ) : (
@@ -199,6 +263,10 @@ const AdminDashboard = () => {
                                                 ❌ Revoke All
                                             </button>
                                         </div>
+
+                                        {/* Analytics Panel */}
+                                        <AnalyticsPanel responses={groupedResponses[expandedSubject]?.responses || []} />
+
                                         <div className="space-y-4">
                                             {groupedResponses[expandedSubject]?.responses.map((response, idx) => (
                                                 <div key={response._id} className={`border-2 rounded-xl bg-white shadow-md overflow-hidden ${response.approvedForTeacher ? 'border-green-300' : 'border-gray-200'}`}>

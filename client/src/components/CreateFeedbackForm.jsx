@@ -12,6 +12,11 @@ const CreateFeedbackForm = () => {
     const [newQuestionType, setNewQuestionType] = useState('text');
     const [newQuestionSection, setNewQuestionSection] = useState('General');
 
+    // Dates & Elective Constraints
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [allowedEmails, setAllowedEmails] = useState([]);
+
     // Faculty Assignment
     const [facultyList, setFacultyList] = useState([]);
     const [assignedFaculty, setAssignedFaculty] = useState('');
@@ -85,14 +90,43 @@ const CreateFeedbackForm = () => {
         setQuestions(questions.filter((_, i) => i !== index));
     };
 
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target.result;
+            // Regex to match anything that looks like an email address anywhere in the text
+            const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+            const foundEmails = text.match(emailRegex) || [];
+            
+            // Deduplicate and convert to lowercase
+            const uniqueEmails = [...new Set(foundEmails.map(e => e.toLowerCase()))];
+            
+            setAllowedEmails(uniqueEmails);
+            toast.success(`Found and added ${uniqueEmails.length} valid student emails from CSV!`);
+        };
+        reader.readAsText(file);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (allowedEmails.length === 0) {
+            const confirmPublic = window.confirm("You haven't uploaded a student email CSV. This means ALL students on campus will be able to see and submit this form. Are you sure you want to proceed?");
+            if (!confirmPublic) return;
+        }
+
         try {
             await axios.post('http://localhost:5000/api/feedback/create', {
                 title,
                 description,
                 questions,
-                assignedFaculty
+                assignedFaculty,
+                startDate: startDate || undefined,
+                endDate: endDate || undefined,
+                allowedEmails: allowedEmails.length > 0 ? allowedEmails : undefined
             });
             toast.success('Feedback Form Created Successfully!');
             navigate('/admin');
@@ -133,6 +167,52 @@ const CreateFeedbackForm = () => {
                                 <option key={f._id} value={f._id}>{f.name} ({f.email})</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Start Date & Time (Optional)</label>
+                            <input
+                                type="datetime-local"
+                                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">When should students be able to start submitting?</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">End Date & Time (Optional)</label>
+                            <input
+                                type="datetime-local"
+                                className="w-full px-4 py-2 mt-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">When should the form expire and disappear?</p>
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <label className="block text-sm font-bold text-gray-800 mb-2">
+                            Specific Student Targeting (Elective Subjects)
+                        </label>
+                        <p className="text-xs text-gray-600 mb-3">
+                            Upload a CSV file containing student emails. Only these students will be able to see and submit this form. If left empty, <strong>all</strong> students will see it.
+                        </p>
+                        <input 
+                            type="file" 
+                            accept=".csv, .txt" 
+                            onChange={handleFileUpload}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        {allowedEmails.length > 0 && (
+                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md shadow-sm">
+                                <p className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                                    <span className="text-lg">✅</span> 
+                                    Targeting activated for {allowedEmails.length} specific student{allowedEmails.length !== 1 ? 's' : ''}.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
 
