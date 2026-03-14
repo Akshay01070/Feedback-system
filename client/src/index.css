@@ -2,4 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles can go here */
+@layer base {
+  body {
+    @apply bg-[#0a0f18] text-gray-200 font-sans;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Neon Text Glows */
+  .text-glow-cyan {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  .text-glow-purple {
+    text-shadow: 0 0 10px rgba(176, 38, 255, 0.7), 0 0 20px rgba(176, 38, 255, 0.5);
+  }
+  .text-glow-emerald {
+    text-shadow: 0 0 10px rgba(0, 255, 102, 0.7), 0 0 20px rgba(0, 255, 102, 0.5);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+  }
+
+  /* Neon Box Shadows (Cards) */
+  .shadow-neon-cyan {
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.1);
+  }
+  .shadow-neon-purple {
+    box-shadow: 0 0 15px rgba(176, 38, 255, 0.4), inset 0 0 10px rgba(176, 38, 255, 0.1);
+  }
+  .shadow-neon-emerald {
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.4), inset 0 0 10px rgba(0, 255, 102, 0.1);
+  }
+  .shadow-neon-blue {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 0 10px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Glassmorphism backgrounds */
+  .bg-glass {
+    @apply bg-[#111827]/60 backdrop-blur-md;
+  }
+}
