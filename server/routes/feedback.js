@@ -5,23 +5,23 @@ const FeedbackResponse = require('../models/FeedbackResponse');
 const User = require('../models/User');
 
 // Middleware to check if admin (Simplified)
-// In real app use proper middleware
 const isAdmin = async (req, res, next) => {
-    // For prototype we might rely on client sending role or just allow
-    // Ideally headers or session.
-    // For now assuming the caller is trusted or we check a simplified header "x-role"
-    // or just let it pass for this dev stage if auth middleware isn't strict yet
     next();
 };
 
 // Create a new feedback form
 router.post('/create', isAdmin, async (req, res) => {
     try {
-        const { title, description, questions } = req.body;
+        const { title, description, questions, assignedFaculty, hasLabComponent, startDate, endDate, allowedEmails } = req.body;
         const form = new FeedbackForm({
             title,
             description,
-            questions
+            questions,
+            assignedFaculty,
+            hasLabComponent: hasLabComponent || false,
+            startDate,
+            endDate,
+            allowedEmails: allowedEmails || []
         });
         await form.save();
         res.json(form);
@@ -31,11 +31,86 @@ router.post('/create', isAdmin, async (req, res) => {
     }
 });
 
-// Get all active forms (for students)
+// Get all active forms (for students) with populated faculty info
+// Now supports filtering by student email if studentId is provided in query
 router.get('/all', async (req, res) => {
     try {
-        const forms = await FeedbackForm.find({ active: true }).sort({ createdAt: -1 });
+        const { studentId } = req.query;
+        let query = { active: true };
+
+        // If a student is requesting forms, check if they are explicitly allowed
+        if (studentId) {
+            const student = await User.findById(studentId);
+            if (student) {
+                const studentEmail = student.email;
+                query = {
+                    ...query,
+                    $or: [
+                        { allowedEmails: { $exists: false } }, // Field doesn't exist (old forms)
+                        { allowedEmails: { $size: 0 } },       // Field is empty array (public forms)
+                        { allowedEmails: studentEmail }       // Student is in the allowlist
+                    ]
+                };
+            }
+        }
+
+        const forms = await FeedbackForm.find(query)
+            .populate('assignedFaculty', 'name email')
+            .sort({ createdAt: -1 });
         res.json(forms);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Delete a feedback form and its associated responses
+router.delete('/:id', isAdmin, async (req, res) => {
+    try {
+        const formId = req.params.id;
+        
+        // Remove the form
+        const deletedForm = await FeedbackForm.findByIdAndDelete(formId);
+        if (!deletedForm) {
+            return res.status(404).json({ msg: 'Form not found' });
+        }
+
+        // Remove all responses associated with this form
+        await FeedbackResponse.deleteMany({ formId });
+
+        res.json({ msg: 'Form and associated responses deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Get list of all faculty members
+router.get('/faculty-list', async (req, res) => {
+    try {
+        const faculty = await User.find({ role: 'teacher' }).select('name email');
+        res.json(faculty);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Close a feedback form instantly
+router.patch('/close/:id', isAdmin, async (req, res) => {
+    try {
+        const formId = req.params.id;
+        const updatedForm = await FeedbackForm.findByIdAndUpdate(
+            formId,
+            { endDate: new Date() },
+            { new: true }
+        );
+
+        if (!updatedForm) {
+            return res.status(404).json({ msg: 'Form not found' });
+        }
+
+        res.json(updatedForm);
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
@@ -47,24 +122,17 @@ router.post('/submit', async (req, res) => {
     try {
         const { formId, answers, studentId } = req.body;
 
-        // Check if student has already submitted feedback for this form
         if (studentId) {
-            const existingResponse = await FeedbackResponse.findOne({
-                formId,
-                studentId
-            });
-
+            const existingResponse = await FeedbackResponse.findOne({ formId, studentId });
             if (existingResponse) {
-                return res.status(400).json({
-                    msg: 'You have already submitted feedback for this form'
-                });
+                return res.status(400).json({ msg: 'You have already submitted feedback for this form' });
             }
         }
 
         const response = new FeedbackResponse({
             formId,
             answers,
-            studentId // Optional
+            studentId
         });
 
         await response.save();
@@ -75,12 +143,11 @@ router.post('/submit', async (req, res) => {
     }
 });
 
-
-// Get all feedback responses (for admin/teacher)
+// Get all feedback responses (for admin)
 router.get('/responses', async (req, res) => {
     try {
         const responses = await FeedbackResponse.find()
-            .populate('formId', 'title')
+            .populate({ path: 'formId', select: 'title assignedFaculty' })
             .sort({ submittedAt: -1 });
         res.json(responses);
     } catch (err) {
@@ -102,5 +169,49 @@ router.get('/submitted/:studentId', async (req, res) => {
     }
 });
 
-module.exports = router;
+// Toggle approval for a single response
+router.patch('/approve/:responseId', async (req, res) => {
+    try {
+        const response = await FeedbackResponse.findById(req.params.responseId);
+        if (!response) return res.status(404).json({ msg: 'Response not found' });
 
+        response.approvedForTeacher = !response.approvedForTeacher;
+        await response.save();
+        res.json({ approved: response.approvedForTeacher });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Approve or revoke all responses for a given form
+router.patch('/approve-all/:formId', async (req, res) => {
+    try {
+        const { approve } = req.body;
+        const result = await FeedbackResponse.updateMany(
+            { formId: req.params.formId },
+            { $set: { approvedForTeacher: approve } }
+        );
+        res.json({ modified: result.modifiedCount, approved: approve });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Get only approved responses for a specific teacher
+router.get('/responses/teacher/:teacherId', async (req, res) => {
+    try {
+        const responses = await FeedbackResponse.find({ approvedForTeacher: true })
+            .populate({ path: 'formId', select: 'title assignedFaculty' })
+            .sort({ submittedAt: -1 });
+
+        const filtered = responses.filter(r => r.formId && r.formId.assignedFaculty?.toString() === req.params.teacherId);
+        res.json(filtered);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+module.exports = router;
